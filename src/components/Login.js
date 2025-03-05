@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState, useRef } from "react";
 import Header from "./Header";
 import { checkValidData } from "../utils/validate";
 import {
@@ -7,76 +7,80 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth } from "../utils/firebase";
-import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { addUser } from "../utils/userSlice";
-import useAuthListener from "../hooks/useAuthListener";
+import  USER_AVATAR  from "../assets/user-icon.jpg";
 
 const Login = () => {
-  useAuthListener(); // Listen for auth state changes
-
   const [isSignInForm, setIsSignInForm] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
-  const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const name = useRef(null);
   const email = useRef(null);
   const password = useRef(null);
 
-  const toggleSignInForm = () => {
-    setIsSignInForm(!isSignInForm);
-  };
-
-  const handleButtonClick = async () => {
+  const handleButtonClick = () => {
     const message = checkValidData(email.current.value, password.current.value);
     setErrorMessage(message);
     if (message) return;
 
     if (!isSignInForm) {
-      // Sign up new user
-      try {
-        const userCredential = await createUserWithEmailAndPassword(
-          auth,
-          email.current.value,
-          password.current.value
-        );
-
-        const user = userCredential.user;
-        await updateProfile(user, {
-          displayName: name.current.value,
-          photoURL: "https://avatars.githubusercontent.com/u/157912346?v=4",
-        });
-
-        // Reload user to get updated details
-        await auth.currentUser.reload();
-        const updatedUser = auth.currentUser;
-        dispatch(
-          addUser({
-            uid: updatedUser.uid,
-            email: updatedUser.email,
-            displayName: updatedUser.displayName,
-            photoURL: updatedUser.photoURL,
+      // Sign Up Logic
+      createUserWithEmailAndPassword(
+        auth,
+        email.current.value,
+        password.current.value
+      )
+        .then((userCredential) => {
+          const user = userCredential.user;
+          updateProfile(user, {
+            displayName: name.current.value,
+            photoURL: USER_AVATAR,
           })
-        );
-
-        navigate("/browse");
-      } catch (error) {
-        setErrorMessage(error.code + " - " + error.message);
-      }
+            .then(() => {
+              const { uid, email, displayName, photoURL } = auth.currentUser;
+              dispatch(
+                addUser({
+                  uid: uid,
+                  email: email,
+                  displayName: displayName,
+                  photoURL: photoURL,
+                })
+              );
+            })
+            .catch((error) => {
+              setErrorMessage(error.message);
+            });
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setErrorMessage(errorCode + "-" + errorMessage);
+        });
     } else {
-      // Sign in existing user
-      try {
-        await signInWithEmailAndPassword(
-          auth,
-          email.current.value,
-          password.current.value
-        );
-        navigate("/browse");
-      } catch (error) {
-        setErrorMessage(error.code + " - " + error.message);
-      }
+      // Sign In Logic
+      signInWithEmailAndPassword(
+        auth,
+        email.current.value,
+        password.current.value
+      )
+        .then((userCredential) => {
+          // Signed in
+          const user = userCredential.user;
+          console.log(user)
+          
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setErrorMessage(errorCode + "-" + errorMessage);
+        });
     }
+  };
+
+  const toggleSignInForm = () => {
+    setIsSignInForm(!isSignInForm);
   };
 
   return (
