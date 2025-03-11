@@ -5,7 +5,9 @@ import { addPopularMovies } from "../utils/moviesSlice";
 
 const usePopularMovies = () => {
   const dispatch = useDispatch();
-  const nowPopularMovies= useSelector((store)=>store.movies.nowPopularMovies);
+  const nowPopularMovies = useSelector(
+    (store) => store.movies.popularMovies
+  );
 
   const getPopularMovies = async () => {
     const data = await fetch(
@@ -16,9 +18,9 @@ const usePopularMovies = () => {
     dispatch(addPopularMovies(json.results));
   };
 
-  useEffect(()=>{
+  useEffect(() => {
     !nowPopularMovies && getPopularMovies();
-  },[]);
+  }, []);
 };
 
 export default usePopularMovies;
